@@ -3,16 +3,35 @@ import java.util.NoSuchElementException;
 
 public class Deque<Item> implements  Iterable<Item> {
 
-    private Item[] items;
+
+    private final Node<Item> sentinel;
     private int size;
-    private int nextfirst;
-    private int nextlast;
+
+    private class Node<Item> {
+        private Item value;
+        private Node<Item> next;
+        private Node<Item> previous;
+
+        private Node() {
+            value = null;
+            next = null;
+            previous = null;
+
+        }
+        private Node(Item x, Node<Item> p, Node<Item> n) {
+            value = x;
+            previous = p;
+            next = n;
+
+        }
+    }
+
 
     public Deque() {
         size = 0;
-        items = (Item[]) new Object[20];
-        nextfirst = 0;
-        nextlast = 1;
+        sentinel = new Node<>();
+        sentinel.next = sentinel;
+        sentinel.previous = sentinel;
 
     }
 
@@ -25,78 +44,70 @@ public class Deque<Item> implements  Iterable<Item> {
     }
 
     public void addFirst(Item item) {
-        if(item == null) {
+        if (item == null) {
             throw new IllegalArgumentException("adding null item. please check");
         }
-        if (size == items.length) {
-            increaseSize();
-        }
-        items[nextfirst] = item;
-        nextfirst = minusIndex(nextfirst);
+
+        Node<Item> newnode = new Node<>(item, sentinel, sentinel.next);
+        sentinel.next.previous = newnode;
+        sentinel.next = newnode;
         size++;
 
     }
 
     public void addLast(Item item) {
-        if(item == null) {
-            throw new NoSuchElementException("adding null item. please check");
+        if (item == null) {
+            throw new IllegalArgumentException("adding null item. please check");
         }
-        if (size == items.length) {
-            increaseSize();
-        }
-        items[nextlast] = item;
-        nextlast = addIndex(nextlast);
+        Node<Item> newnode = new Node<>(item, sentinel.previous, sentinel);
+        sentinel.previous.next = newnode;
+        sentinel.previous = newnode;
         size++;
     }
 
     public Item removeFirst() {
-        if(size == 0) {
+        if (size == 0) {
             throw new NoSuchElementException(" Remove from empty queue, please check!! ");
         }
 
+        // Node<Item> firstnode = sentinel.next;
+        Item first = sentinel.next.value;
+        sentinel.next = sentinel.next.next;
+        sentinel.next.previous = sentinel;
 
-        if (items.length > 20 && size == items.length / 4) {
-            decreaseSize();
-        }
-
-        nextfirst = addIndex(nextfirst);
-        Item first = items[nextfirst];
-        items[nextfirst] = null;
         size--;
         return  first;
     }
 
     public Item removeLast() {
-        if(size == 0) {
-            throw new UnsupportedOperationException(" Remove from empty queue, please check!! ");
+        if (size == 0) {
+            throw new NoSuchElementException(" Remove from empty queue, please check!! ");
         }
-        if (items.length > 20 && size == items.length / 4) {
-            decreaseSize();
-        }
-        nextlast = minusIndex(nextlast);
-        Item last = items[nextlast];
-        items[nextlast] = null;
+        // Node<Item> lastnode = sentinel.previous;
+        Item last = sentinel.previous.value;
+        sentinel.previous = sentinel.previous.previous;
+        sentinel.previous.next = sentinel;
         size--;
         return last;
     }
 
     @Override
     public Iterator<Item> iterator() {
-        return new arrayIterator();
+        return new LLIterator();
     }
 
-    private class arrayIterator implements  Iterator<Item> {
-        int current = addIndex(nextfirst);
+    private class LLIterator implements  Iterator<Item> {
+        private Node<Item> current = sentinel.next;
         @Override
         public boolean hasNext() {
-            return (size > 0) && (current!=minusIndex(nextlast));
+            return (size > 0) && (current != sentinel);
         }
 
         @Override
         public Item next() {
-            if(!hasNext()) throw new NoSuchElementException("End of the QUEUE, no next element");
-            Item t = items[current];
-            current = addIndex(current);
+            if (!hasNext()) throw new NoSuchElementException("End of the QUEUE, no next element");
+            Item t = current.value;
+            current = current.next;
             return t;
         }
 
@@ -106,59 +117,23 @@ public class Deque<Item> implements  Iterable<Item> {
         }
     }
 
-    private void increaseSize() {
 
-        Item[] newary = (Item[]) new Object[size * 2];
-        System.arraycopy(items, nextlast, newary, size + nextlast, size - nextlast);
-        System.arraycopy(items, 0 , newary, 0, nextlast);
-        // System.arraycopy(newary, size + nextlast, items, nextlast, size - nextlast);
-         // System.arraycopy(newary, 0 , items, 0, nextlast);
-        if (nextlast != 0) {
-            nextfirst = nextfirst + size;
-        }
-        items = newary;
-    }
-
-    private void decreaseSize() {
-        int length = items.length;
-        Item[] newary = (Item[]) new Object[length / 2];
-        if (nextlast < nextfirst) {
-            System.arraycopy(items, nextfirst, newary, nextfirst - length / 2, length - nextfirst);
-            System.arraycopy(items, 0, newary, 0, nextlast);
-
-            nextfirst = nextfirst - length / 2;
-        } else {
-            System.arraycopy(items, nextfirst, newary, 0, size + 1);
-            // System.arraycopy(newary, 0, items, nextfirst, size + 1);
-            nextfirst = 0;
-            nextlast = size + 1;
-        }
-
-        items =  newary;
-    }
-
-    private int minusIndex(int i) {
-        return i == 0 ? items.length - 1 : i - 1;
-    }
-
-    private int addIndex(int i) {
-        return i == items.length - 1 ? 0 : i + 1;
-    }
 
     public static void main(String[] args) {
         Deque<Integer> dq = new Deque<>();
 
-        for(int i = 0; i < 20; i++) {
-            dq.addFirst((Integer)i);
+        for (int i = 0; i < 15; i++) {
+            dq.addFirst(i);
         }
 
         dq.addLast(21);
         dq.addFirst(22);
-        for( int i = 0; i< 15; i++) {
+        for (int i = 0; i < 17; i++) {
             dq.removeLast();
         }
+        // dq.removeFirst();
 
-        System.out.print(dq.removeFirst() + " " + dq.removeLast());
+        // System.out.print(dq.removeFirst() + " " + dq.removeLast());
 
     }
 
